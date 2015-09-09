@@ -4,11 +4,13 @@ var assert = require('assert')
 var bigi = require('bigi')
 var bitcoin = require('../../')
 
+// for deterministic testing only
+function rng () {
+  return new Buffer('zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz')
+}
+
 describe('bitcoinjs-lib (basic)', function () {
   it('can generate a random bitcoin address', function () {
-    // for testing only
-    function rng () { return new Buffer('zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz') }
-
     // generate random keyPair
     var keyPair = bitcoin.ECPair.makeRandom({ rng: rng })
     var address = keyPair.getAddress()
@@ -27,14 +29,11 @@ describe('bitcoinjs-lib (basic)', function () {
   })
 
   it('can generate a random keypair for alternative networks', function () {
-    // for testing only
-    function rng () { return new Buffer('zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz') }
-
     var litecoin = bitcoin.networks.litecoin
 
     var keyPair = bitcoin.ECPair.makeRandom({ network: litecoin, rng: rng })
-    var wif = keyPair.toWIF()
     var address = keyPair.getAddress()
+    var wif = keyPair.toWIF()
 
     assert.strictEqual(address, 'LZJSxZbjqJ2XVEquqfqHg1RQTDdfST5PTn')
     assert.strictEqual(wif, 'T7A4PUSgTDHecBxW1ZiYFrDNRih2o7M8Gf9xpoCgudPF9gDiNvuS')
@@ -56,5 +55,26 @@ describe('bitcoinjs-lib (basic)', function () {
     tx.sign(0, keyPair)
 
     assert.strictEqual(tx.build().toHex(), '0100000001313eb630b128102b60241ca895f1d0ffca2170d5a0990e094f2182c102ab94aa000000006b483045022100aefbcf847900b01dd3e3debe054d3b6d03d715d50aea8525f5ea3396f168a1fb022013d181d05b15b90111808b22ef4f9ebe701caf2ab48db269691fdf4e9048f4f60121029f50f51d63b345039a290c94bffd3180c99ed659ff6ea6b1242bca47eb93b59fffffffff01983a0000000000001976a914ad618cf4333b3b248f9744e8e81db2964d0ae39788ac00000000')
+  })
+
+  it('can support custom networks', function () {
+    var viacoin = {
+      messagePrefix: '\x18Viacoin Signed Message:\n',
+      bip32: {
+        public: 0x0488b21e,
+        private: 0x0488ade4
+      },
+      dustThreshold: 560,
+      feePerKb: 100000,
+      pubKeyHash: 0x47,
+      scriptHash: 0x21,
+      wif: 0xc7
+    }
+    var keyPair = bitcoin.ECPair.makeRandom({ network: viacoin, rng: rng })
+    var address = keyPair.getAddress()
+    var wif = keyPair.toWIF()
+
+    assert.strictEqual(address, 'Vp5Kc4TNASggJD3uQKVcptgVvpZMkefyGv')
+    assert.strictEqual(wif, 'WWVZYBjNUkMp26GAjJo5ZrPa9iK2zjar1pUxhFAsCdicdHk6wxzS')
   })
 })
